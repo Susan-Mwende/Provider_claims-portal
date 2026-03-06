@@ -15,10 +15,14 @@ RUN apt-get update && apt-get install -y \
     npm \
     nginx \
     supervisor \
+    libpng-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install \
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
     pdo_mysql \
     mbstring \
     bcmath \
@@ -26,18 +30,22 @@ RUN docker-php-ext-install \
     xml \
     ctype \
     iconv \
-    opcache
+    opcache \
+    gd
 
 # Copy Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Copy composer files first
+COPY composer.json composer.lock ./
+
+# Install dependencies without scripts
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
 # Copy application files
 COPY . .
 
-# Set memory limit and install dependencies
-RUN echo "memory_limit=-1" > /usr/local/etc/php/conf.d/memory-limit.ini \
-    && composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
-
+# Install and build Node.js dependencies
 RUN npm install && npm run production
 
 # Run Laravel optimization commands after installation

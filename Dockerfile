@@ -1,25 +1,29 @@
-# Use PHP 8.3 FPM for production performance
-FROM php:8.3-fpm-alpine
+# Use PHP 8.3 FPM with Debian for better extension support
+FROM php:8.3-fpm
 
 # Set working directory
 WORKDIR /var/www
 
 # Install system dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     git \
     unzip \
     libzip-dev \
     libxml2-dev \
-    oniguruma-dev \
+    libonig-dev \
+    libpng-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
     nodejs \
     npm \
     nginx \
     supervisor \
-    icu-dev \
-    postgresql-dev
+    libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install \
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
     pdo_mysql \
     pdo_pgsql \
     mbstring \
@@ -28,7 +32,9 @@ RUN docker-php-ext-install \
     xml \
     ctype \
     iconv \
-    opcache
+    intl \
+    opcache \
+    gd
 
 # Install and configure opcache
 RUN docker-php-ext-enable opcache && \

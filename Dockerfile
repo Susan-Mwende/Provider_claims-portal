@@ -8,30 +8,27 @@ WORKDIR /var/www
 RUN apk add --no-cache \
     git \
     unzip \
-    libpng-dev \
     libzip-dev \
     libxml2-dev \
     oniguruma-dev \
-    freetype-dev \
-    libjpeg-turbo-dev \
     nodejs \
     npm \
     nginx \
-    supervisor
+    supervisor \
+    icu-dev \
+    postgresql-dev
 
 # Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
+RUN docker-php-ext-install \
     pdo_mysql \
+    pdo_pgsql \
     mbstring \
     bcmath \
     zip \
     xml \
     ctype \
     iconv \
-    intl \
-    opcache \
-    gd
+    opcache
 
 # Install and configure opcache
 RUN docker-php-ext-enable opcache && \

@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     nginx \
     supervisor \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -23,13 +24,8 @@ RUN docker-php-ext-install \
     ctype \
     iconv
 
+# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copy composer files first
-COPY composer.json composer.lock ./
-
-# Install dependencies without scripts
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
 # Copy application files
 COPY . .
@@ -48,6 +44,13 @@ COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zzz-custom.conf
 # Copy supervisor configuration
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Create startup script
+RUN echo '#!/bin/bash' > /start.sh && \
+    echo 'composer install --no-dev --optimize-autoloader --no-interaction' >> /start.sh && \
+    echo 'chown -R www-data:www-data /var/www' >> /start.sh && \
+    echo 'exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' >> /start.sh && \
+    chmod +x /start.sh
+
 EXPOSE 10000
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/start.sh"]

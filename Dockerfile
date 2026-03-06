@@ -21,8 +21,7 @@ RUN docker-php-ext-install \
     zip \
     xml \
     ctype \
-    iconv \
-    opcache
+    iconv
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 

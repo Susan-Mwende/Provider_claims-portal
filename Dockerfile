@@ -30,11 +30,6 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage \
-    && chmod -R 755 /var/www/bootstrap/cache
-
 # Copy nginx configuration
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 
@@ -48,6 +43,8 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN echo '#!/bin/bash' > /start.sh && \
     echo 'composer install --no-dev --optimize-autoloader --no-interaction' >> /start.sh && \
     echo 'chown -R www-data:www-data /var/www' >> /start.sh && \
+    echo 'chmod -R 755 /var/www/storage' >> /start.sh && \
+    echo 'chmod -R 755 /var/www/bootstrap/cache' >> /start.sh && \
     echo 'exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' >> /start.sh && \
     chmod +x /start.sh
 

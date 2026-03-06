@@ -1,0 +1,107 @@
+<?php
+
+namespace App\Http\Controllers;
+use App\Upload;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Reader\Exception;
+use PhpOffice\PhpSpreadsheet\Writer\Xls;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use ZanySoft\Zip\Zip;
+
+class ExceluserController extends Controller
+{
+    function index()
+    {
+//        $providers = DB::table('users')->where('role', 'guest')->pluck("pname", "id");
+        $data = DB::table('claims')->orderBy('id', 'DESC')->paginate(5);
+        return view('Claims/index', compact('data'));
+    }
+
+    function importData(Request $request){
+
+        $this->validate($request, [
+            'uploaded_file' => 'required|file|mimes:xls,xlsx',
+            'zip' => 'required|file|mimes:zip,rar,rar4',
+            'claimraisedby' => 'required',
+        ]);
+        $raiser_id = auth()->user()->id;
+
+        $the_file = $request->file('uploaded_file');
+        try{
+
+            $spreadsheet = IOFactory::load($the_file->getRealPath());
+            $sheet        = $spreadsheet->getActiveSheet();
+            $row_limit    = $sheet->getHighestDataRow();
+            $column_limit = $sheet->getHighestDataColumn();
+            $row_range    = range( 1, $row_limit );
+            $column_range = range( 'F', $column_limit );
+            $startcount = 0;
+            $data = array();
+            $timeoftheClaim = Carbon::now();
+            $batchnumber = config('app.timestampstring');
+            $alertstobesend = \Illuminate\Support\Facades\DB::table('users')->where('id', request('user_id'))->value('sendalert');
+            foreach ( $row_range as $row ) {
+                $amountDecimal = floatval($sheet->getCell( 'B' . $row )->getValue());
+                $convertedInvoice = strval($sheet->getCell( 'A' . $row )->getValue());
+                $data[] = [
+                    'user_id' => auth()->user()->id,
+                    'raiser_id' => auth()->user()->id,
+                    'slug' => \Str::slug($sheet->getCell( 'A' . $row )->getValue()."_".$timeoftheClaim->toDateTimeString()),
+                    'Invoice' =>$convertedInvoice,
+                    'Amount' => $amountDecimal,
+                    'serviceType' => $sheet->getCell( 'C' . $row )->getValue(),
+                    'providerType' => $sheet->getCell( 'D' . $row )->getValue(),
+                    'invoice_date' => $sheet->getCell( 'E' . $row )->getValue(),
+                    'encounterno' => $sheet->getCell( 'F' . $row )->getValue(),
+                    'attachment' => $sheet->getCell( 'A' . $row )->getValue(). ".pdf",
+                    'batchno' => $batchnumber,
+                    'claimraisedby' => request('claimraisedby'),
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
+                ];
+                $startcount++;
+            }
+            DB::table('claims')->insert($data);
+            if($request->hasfile('zip')) {
+                Upload::create([
+                    'file' => $request->file('zip')->storeAs('file', $raiser_id.'.zip')
+                ]);
+
+                if ($request->wantsJson()) {
+                    return response([], 204);
+                }
+            }
+            if ($alertstobesend == 1) {
+                //Send Email Notification to the user
+                \Mail::send('/emails/mail', array(
+                    'batchno'     => $batchnumber,
+                    'Date' => time(),
+                ), function ($message) {
+                    $userselected = auth()->user()->id;
+                    $message->from('info-alerts@aar.co.ke');
+                    $message->to(DB::table('users')->where('id', $userselected)->value('email'))->subject('A NEW BULK CLAIM FROM PORTAL');
+                });
+                //Send Email Notification to the Admin
+                \Mail::send('/emails/mail1', array(
+                    'batchno'     => $batchnumber,
+                    'Date' => time(),
+                ), function ($message) {
+                    $message->from('info-alerts@aar.co.ke');
+                    $message->to('info-alerts@aar.co.ke')->subject('A NEW BULK CLAIM FROM PORTAL');
+                });
+            }
+        } catch (Exception $e) {
+            $error_code = $e->errorInfo[1];
+            return back()->withErrors('There was a problem uploading the data!');
+        }
+
+        $zip = Zip::open('C:\xampp\htdocs\CURRENT\storage\app\file\\'.$raiser_id.'.zip');
+        $zip->extract('\\fs-04409fd3f7e883400.awsdc.aar\share\SINGLE');
+        $zip->close(); // important
+        unlink('C:\xampp\htdocs\CURRENT\storage\app\file\\'.$raiser_id.'.zip');
+        return back()->withSuccess('Great! all your invoices data have been submitted successfully. Thank you');
+    }
+}

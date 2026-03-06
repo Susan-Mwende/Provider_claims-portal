@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use DB;
+
+class ClaimsViewTestController extends Controller
+{
+    public function index(Request $request) {
+        //$users = DB::select('select top 10000 a.*, a.Invoice,a.amount,a.serviceType,a.providerType,a.invoice_date,b.name from claims a inner join users b on a.user_id = b.id order by b.id asc');
+        if(request()->ajax()) {
+            if (!empty($request->from_date) && !empty($request->to_date)) {
+                
+                $from = $request->from_date;
+                $to = $request->to_date;
+               $to= date('Y-m-d', strtotime($to . ' +1 day'));
+
+                $users = DB::table('claims')
+                      ->join('users', 'users.id', '=', 'claims.user_id')
+                    ->select('users.pname','claims.*')
+
+                    ->whereBetween('claims.created_at', array($from, $to))
+
+                    ->get();
+
+                return datatables()->of($users)->make(true);
+            } else {
+                $tab = array();
+                $users = DB::table('claims')
+                        ->join('users', 'users.id', '=', 'claims.user_id')
+                     ->select('users.*', 'claims.*')
+
+                    ->limit(100000)
+
+               ->get();
+               return datatables()->of($users)->make(true);
+
+            }
+
+        }
+        return view('ClaimViewTest');
+    }
+
+}
+
+//ClaimViewTest
+

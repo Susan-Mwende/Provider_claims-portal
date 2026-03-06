@@ -34,16 +34,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage \
-    && chmod -R 755 /var/www/bootstrap/cache
-
 # Install Composer dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Install and build Node.js dependencies
 RUN npm install && npm run production
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage \
+    && chmod -R 755 /var/www/bootstrap/cache
 
 # Copy nginx configuration
 COPY docker/nginx.conf /etc/nginx/nginx.conf

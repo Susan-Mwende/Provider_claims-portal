@@ -12,13 +12,16 @@ RUN apk add --no-cache \
     libzip-dev \
     libxml2-dev \
     oniguruma-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
     nodejs \
     npm \
     nginx \
     supervisor
 
 # Install PHP extensions
-RUN docker-php-ext-install \
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
     pdo_mysql \
     mbstring \
     bcmath \
@@ -27,7 +30,8 @@ RUN docker-php-ext-install \
     ctype \
     iconv \
     intl \
-    opcache
+    opcache \
+    gd
 
 # Install and configure opcache
 RUN docker-php-ext-enable opcache && \

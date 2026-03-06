@@ -41,6 +41,7 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create startup script
 RUN echo '#!/bin/bash' > /start.sh && \
+    echo 'sed -i "s/\${PORT}/'$PORT'/g" /etc/nginx/nginx.conf' >> /start.sh && \
     echo 'composer install --no-dev --optimize-autoloader --no-interaction' >> /start.sh && \
     echo 'chown -R www-data:www-data /var/www' >> /start.sh && \
     echo 'chmod -R 755 /var/www/storage' >> /start.sh && \

@@ -34,11 +34,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
-# Install Composer dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Set memory limit and install dependencies
+RUN echo "memory_limit=-1" > /usr/local/etc/php/conf.d/memory-limit.ini \
+    && composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# Install and build Node.js dependencies
 RUN npm install && npm run production
+
+# Run Laravel optimization commands after installation
+RUN php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www \

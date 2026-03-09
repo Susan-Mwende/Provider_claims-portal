@@ -39,8 +39,10 @@ RUN mkdir -p /var/www/bootstrap/cache \
     && mkdir -p /var/www/storage/framework/cache \
     && mkdir -p /var/www/storage/framework/sessions \
     && mkdir -p /var/www/storage/framework/views \
+    && mkdir -p /var/www/database \
     && chmod -R 755 /var/www/storage \
-    && chmod -R 755 /var/www/bootstrap/cache
+    && chmod -R 755 /var/www/bootstrap/cache \
+    && chmod -R 755 /var/www/database
 
 # Create startup script
 RUN echo '#!/bin/bash' > /start.sh && \

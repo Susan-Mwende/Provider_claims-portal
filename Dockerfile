@@ -9,18 +9,23 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libxml2-dev \
     libonig-dev \
+    libpng-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install \
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
     pdo_mysql \
     mbstring \
     bcmath \
     zip \
     xml \
     ctype \
-    iconv
+    iconv \
+    gd
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

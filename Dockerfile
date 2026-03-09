@@ -30,9 +30,13 @@ COPY . .
 
 # Create startup script
 RUN echo '#!/bin/bash' > /start.sh && \
+    echo 'set -e' >> /start.sh && \
+    echo 'echo "Installing Composer dependencies..."' >> /start.sh && \
     echo 'composer install --no-dev --optimize-autoloader --no-interaction' >> /start.sh && \
+    echo 'echo "Setting permissions..."' >> /start.sh && \
     echo 'chmod -R 755 /var/www/storage' >> /start.sh && \
     echo 'chmod -R 755 /var/www/bootstrap/cache' >> /start.sh && \
+    echo 'echo "Starting Laravel server..."' >> /start.sh && \
     echo 'php artisan serve --host=0.0.0.0 --port=${PORT:-10000}' >> /start.sh && \
     chmod +x /start.sh
 
